@@ -80,6 +80,8 @@ import com.android.systemui.statusbar.policy.KeyguardStateController;
 import com.android.systemui.tuner.TunerService;
 import com.android.systemui.util.Utils;
 import com.android.systemui.util.concurrency.DelayableExecutor;
+import com.android.systemui.statusbar.phone.StatusBar;
+import com.android.systemui.statusbar.VisualizerView;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
@@ -173,6 +175,11 @@ public class NotificationMediaManager implements Dumpable, TunerService.Tunable 
             if (state != null) {
                 if (!isPlaybackActive(state.getState())) {
                     clearCurrentMediaNotification();
+                }
+                final Optional<StatusBar> statusBarOptional = mStatusBarOptionalLazy.get();
+                if (statusBarOptional != null) {
+                    statusBarOptional.map(StatusBar::getVisualizer).orElse(null).setPlaying(state.getState()
+                            == PlaybackState.STATE_PLAYING);
                 }
                 findAndUpdateMediaNotifications();
             }
@@ -758,6 +765,22 @@ public class NotificationMediaManager implements Dumpable, TunerService.Tunable 
         mColorExtractor.setHasMediaArtwork(hasMediaArtwork);
         if (mScrimController != null) {
             mScrimController.setHasBackdrop(hasArtwork);
+        }
+
+        final Optional<StatusBar> statusBarOptional = mStatusBarOptionalLazy.get();
+        if (statusBarOptional != null &&
+                mStatusBarStateController.getState() != StatusBarState.SHADE) {
+            VisualizerView visualizerView = statusBarOptional.map(StatusBar::getVisualizer).orElse(null);
+            if (!mKeyguardStateController.isKeyguardFadingAway() && hasArtwork) {
+                // if there's album art, ensure visualizer is visible
+                visualizerView.setPlaying(getMediaControllerPlaybackState(mMediaController) ==
+                        PlaybackState.STATE_PLAYING);
+            }
+
+            if (hasMediaArtwork && (artworkDrawable instanceof BitmapDrawable)) {
+                // always use current backdrop to color eq
+                visualizerView.setBitmap(((BitmapDrawable)artworkDrawable).getBitmap());
+            }
         }
 
         if ((hasArtwork || DEBUG_MEDIA_FAKE_ARTWORK)
