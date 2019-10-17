@@ -5658,6 +5658,12 @@ public final class Settings {
         public static final String QS_TILE_LABEL_HIDE = "qs_tile_label_hide";
 
         /**
+         * Whether to show qs footer text
+         * @hide
+         */
+        public static final String QS_FOOTER_TEXT_SHOW = "qs_footer_text_show";
+
+        /**
          * Keys we no longer back up under the current schema, but want to continue to
          * process when restoring historical backup datasets.
          *
