@@ -50,6 +50,7 @@ import android.os.UserHandle;
 import android.os.storage.StorageManager;
 import android.permission.PermissionManager;
 import android.print.PrintManager;
+import android.provider.AlarmClock;
 import android.provider.CalendarContract;
 import android.provider.ContactsContract;
 import android.provider.MediaStore;
@@ -1033,6 +1034,10 @@ final class DefaultPermissionGrantPolicy {
         // Settings Services
         grantSystemFixedPermissionsToSystemPackage(pm, "com.google.android.settings.intelligence", userId,
                 PHONE_PERMISSIONS, ALWAYS_LOCATION_PERMISSIONS);
+                
+        // Clock App
+        String clockAppPackage = getDefaultSystemHandlerActivityPackage(pm, AlarmClock.ACTION_SET_ALARM, userId);
+        grantPermissionsToSystemPackage(pm, clockAppPackage, userId, NOTIFICATION_PERMISSIONS);
     }
 
     private String getDefaultSystemHandlerActivityPackageForCategory(PackageManagerWrapper pm,
