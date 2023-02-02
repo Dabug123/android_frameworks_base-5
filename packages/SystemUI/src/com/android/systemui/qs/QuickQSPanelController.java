@@ -34,6 +34,7 @@ import com.android.systemui.qs.dagger.QSScope;
 import com.android.systemui.qs.logging.QSLogger;
 import com.android.systemui.util.leak.RotationUtils;
 import com.android.systemui.qs.TileUtils;
+import com.android.systemui.tuner.TunerService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,6 +49,7 @@ public class QuickQSPanelController extends QSPanelControllerBase<QuickQSPanel>
         implements TunerService.Tunable {
 
     private final Provider<Boolean> mUsingCollapsedLandscapeMediaProvider;
+    private final TunerService mTunerService;
 
     @Inject
     QuickQSPanelController(QuickQSPanel view, QSTileHost qsTileHost,
@@ -57,11 +59,12 @@ public class QuickQSPanelController extends QSPanelControllerBase<QuickQSPanel>
             @Named(QS_USING_COLLAPSED_LANDSCAPE_MEDIA)
                     Provider<Boolean> usingCollapsedLandscapeMediaProvider,
             MetricsLogger metricsLogger, UiEventLogger uiEventLogger, QSLogger qsLogger,
-            DumpManager dumpManager
+            DumpManager dumpManager, TunerService tunerService
     ) {
         super(view, qsTileHost, qsCustomizerController, usingMediaPlayer, mediaHost, metricsLogger,
                 uiEventLogger, qsLogger, dumpManager, tunerService);
         mUsingCollapsedLandscapeMediaProvider = usingCollapsedLandscapeMediaProvider;
+        mTunerService = tunerService;
     }
 
     @Override
