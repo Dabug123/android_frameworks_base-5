@@ -18,6 +18,7 @@ package com.android.internal.gmscompat;
 
 import android.app.Application;
 import android.os.Build;
+import android.os.Build.VERSION;
 import android.os.SystemProperties;
 import android.util.Log;
 
@@ -26,15 +27,14 @@ import java.util.Arrays;
 
 /** @hide */
 public final class AttestationHooks {
-    private static final String TAG = "GmsCompat/Attestation";
+    private static final String TAG = "Attestation";
 
     private static final String PACKAGE_GMS = "com.google.android.gms";
-
+    private static final String PACKAGE_FINSKY = "com.android.vending";
     private static final String PROCESS_UNSTABLE = "com.google.android.gms.unstable";
 
-    private static final String PRODUCT_STOCK_FINGERPRINT = "google/cheetah/cheetah:13/TQ1A.230105.002/9325679:user/release-keys";
-
     private static volatile boolean sIsGms = false;
+    private static volatile boolean sIsFinsky = false;
 
     private AttestationHooks() { }
 
@@ -54,12 +54,29 @@ public final class AttestationHooks {
         }
     }
 
-    private static void spoofBuildGms() {
-        // Set fingerprint for SafetyNet CTS profile
-        setBuildField("FINGERPRINT", PRODUCT_STOCK_FINGERPRINT);
+    private static void setVersionField(String key, Integer value) {
+        try {
+            // Unlock
+            Field field = Build.VERSION.class.getDeclaredField(key);
+            field.setAccessible(true);
 
-        // Alter model name to avoid hardware attestation enforcement
-        setBuildField("MODEL", Build.MODEL + " ");
+            // Edit
+            field.set(null, value);
+
+            // Lock
+            field.setAccessible(false);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            Log.e(TAG, "Failed to spoof Build." + key, e);
+        }
+    }
+
+    private static void spoofBuildGms() {
+        // Alter model name and fingerprint to avoid hardware attestation enforcement
+        setBuildField("FINGERPRINT", "google/marlin/marlin:7.1.2/NJH47F/4146041:user/release-keys");
+        setBuildField("PRODUCT", "marlin");
+        setBuildField("DEVICE", "marlin");
+        setBuildField("MODEL", "Pixel XL");
+        setVersionField("DEVICE_INITIAL_SDK_INT", Build.VERSION_CODES.N_MR1);
     }
 
     public static void initApplicationBeforeOnCreate(Application app) {
@@ -68,16 +85,21 @@ public final class AttestationHooks {
             sIsGms = true;
             spoofBuildGms();
         }
+
+        if (PACKAGE_FINSKY.equals(app.getPackageName())) {
+            sIsFinsky = true;
+        }
     }
 
     private static boolean isCallerSafetyNet() {
-        return Arrays.stream(Thread.currentThread().getStackTrace())
+        return sIsGms && Arrays.stream(Thread.currentThread().getStackTrace())
                 .anyMatch(elem -> elem.getClassName().contains("DroidGuard"));
     }
 
     public static void onEngineGetCertificateChain() {
-        // Check stack for SafetyNet
-        if (sIsGms && isCallerSafetyNet()) {
+        // Check stack for SafetyNet or Play Integrity
+        if (isCallerSafetyNet() || sIsFinsky) {
+            Log.i(TAG, "Blocked key attestation sIsGms=" + sIsGms + " sIsFinsky=" + sIsFinsky);
             throw new UnsupportedOperationException();
         }
     }
